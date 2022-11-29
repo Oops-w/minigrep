@@ -1,31 +1,40 @@
 use std::error::Error;
-use std::{fs, env};
+use std::{env, fs};
 
 pub struct MiniGrepConfig {
     pub query_str: String,
-    pub file_name: String,
+    pub file_path: String,
     pub case_sensitive: bool,
 }
 
 impl MiniGrepConfig {
-    pub fn new(args: &[String]) -> Result<MiniGrepConfig, String> {
-        if args.len() < 3 {
-            return Err(String::from("not enough arguments"));
-        }
-        
+    pub fn new(mut args: env::Args) -> Result<MiniGrepConfig, String> {
+        // ignore program name
+        args.next();
+
+        let query_str = match args.next() {
+            Some(arg) => arg,
+            None => return Err(String::from("query string is null")),
+        };
+
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err(String::from("file path is null")),
+        };
+
         let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
 
         Ok(Self {
-            query_str: args[1].clone(),
-            file_name: args[2].clone(),
+            query_str: query_str,
+            file_path: file_path,
             case_sensitive: case_sensitive,
         })
     }
 }
 
 pub fn run(mini_grep_config: MiniGrepConfig) -> Result<(), Box<dyn Error>> {
-    let conetnts = fs::read_to_string(mini_grep_config.file_name)?;
-    
+    let conetnts = fs::read_to_string(mini_grep_config.file_path)?;
+
     let results = if mini_grep_config.case_sensitive {
         search(&mini_grep_config.query_str, &conetnts)
     } else {
@@ -40,28 +49,17 @@ pub fn run(mini_grep_config: MiniGrepConfig) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let query_lower = query.to_lowercase();
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query_lower) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(query.to_lowercase().as_str()))
+        .collect()
 }
 #[cfg(test)]
 mod tests {

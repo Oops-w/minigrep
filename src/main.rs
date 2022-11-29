@@ -2,9 +2,9 @@ use minigrep;
 use std::{env, process};
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: env::Args = env::args();
 
-    let mini_grep_config = minigrep::MiniGrepConfig::new(&args).unwrap_or_else(|err| {
+    let mini_grep_config = minigrep::MiniGrepConfig::new(args).unwrap_or_else(|err| {
         eprintln!("Problem parsing argusments: {}", err);
         process::exit(1);
     });
